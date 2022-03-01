@@ -9,3 +9,6 @@
 [submodule "dependencies/external/protobuf"]
 	path = dependencies/external/protobuf
 	url = https://github.com/protocolbuffers/protobuf
+[submodule "dependencies/external/serial"]
+	path = dependencies/external/serial
+	url = https://github.com/wjwwood/serial
