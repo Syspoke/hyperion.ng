@@ -122,7 +122,6 @@ if(ENABLE_DEV_NETWORK)
 endif()
 
 if(ENABLE_DEV_SERIAL)
-	include_directories(../../dependencies/external/serial/include)
 	target_link_libraries(leddevice serial)
 endif()
 

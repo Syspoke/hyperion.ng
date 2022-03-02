@@ -27,6 +27,8 @@ if(ENABLE_LIBSERIAL)
 	# define the include for the serial library at the parent scope
 	set(SERIAL_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/external/serial/include")
 	include_directories(${SERIAL_INCLUDE_DIRS})
+	target_link_libraries(serial rt)
+	target_include_directories(serial INTERFACE ${SERIAL_INCLUDE_DIRS})
 endif()
 
 #=============================================================================
