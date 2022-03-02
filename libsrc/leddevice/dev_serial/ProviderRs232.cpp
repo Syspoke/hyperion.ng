@@ -5,7 +5,6 @@
 #include <utils/WaitTime.h>
 
 // qt includes
-#include <QSerialPortInfo>
 #include <QEventLoop>
 #include <QDir>
 
@@ -29,7 +28,7 @@ namespace {
 
 ProviderRs232::ProviderRs232(const QJsonObject &deviceConfig)
 	: LedDevice(deviceConfig)
-	  , _rs232Port(this)
+	  ,_rs232Port()
 	  ,_baudRate_Hz(1000000)
 	  ,_isAutoDeviceName(false)
 	  ,_delayAfterConnect_ms(0)
@@ -110,10 +109,7 @@ int ProviderRs232::close()
 	// Test, if device requires closing
 	if (_rs232Port.isOpen())
 	{
-		if ( _rs232Port.flush() )
-		{
-			Debug(_log,"Flush was successful");
-		}
+		_rs232Port.flush();
 		Debug(_log,"Close UART: %s", QSTRING_CSTR(_deviceName) );
 		_rs232Port.close();
 		// Everything is OK -> device is closed
@@ -134,7 +130,7 @@ bool ProviderRs232::powerOff()
 
 bool ProviderRs232::tryOpen(int delayAfterConnect_ms)
 {
-	if (_deviceName.isEmpty() || _rs232Port.portName().isEmpty())
+	if (_deviceName.isEmpty())
 	{
 		if (!_rs232Port.isOpen())
 		{
@@ -148,11 +144,9 @@ bool ProviderRs232::tryOpen(int delayAfterConnect_ms)
 				}
 			}
 		}
-
-		_rs232Port.setPortName(_deviceName);
 	}
 
-	if (!_rs232Port.isOpen())
+	if (!_rs232Port.isOpen() && !_deviceName.isEmpty())
 	{
 		if (!_location.isEmpty())
 		{
@@ -165,44 +159,17 @@ bool ProviderRs232::tryOpen(int delayAfterConnect_ms)
 
 		_frameDropCounter = 0;
 
-		_rs232Port.setBaudRate( _baudRate_Hz );
+		_rs232Port.setPort(_location.toStdString());
+		_rs232Port.setBaudrate( _baudRate_Hz );
 
 		Debug(_log, "_rs232Port.open(QIODevice::ReadWrite): %s, Baud rate [%d]bps", QSTRING_CSTR(_deviceName), _baudRate_Hz);
 
-		QSerialPortInfo serialPortInfo(_deviceName);
-		if (!serialPortInfo.isNull() )
-		{
-			Debug(_log, "portName:          %s", QSTRING_CSTR(serialPortInfo.portName()));
-			Debug(_log, "systemLocation:    %s", QSTRING_CSTR(serialPortInfo.systemLocation()));
-			Debug(_log, "description:       %s", QSTRING_CSTR(serialPortInfo.description()));
-			Debug(_log, "manufacturer:      %s", QSTRING_CSTR(serialPortInfo.manufacturer()));
-			Debug(_log, "vendorIdentifier:  %s", QSTRING_CSTR(QString("0x%1").arg(serialPortInfo.vendorIdentifier(), 0, 16)));
-			Debug(_log, "productIdentifier: %s", QSTRING_CSTR(QString("0x%1").arg(serialPortInfo.productIdentifier(), 0, 16)));
-			Debug(_log, "serialNumber:      %s", QSTRING_CSTR(serialPortInfo.serialNumber()));
 
-			if ( !_rs232Port.open(QIODevice::ReadWrite) )
-			{
-				this->setInError(_rs232Port.errorString());
-				return false;
-			}
+		try {
+			_rs232Port.open();
 		}
-		else
-		{
-			QString errortext = QString("Invalid serial device name: %1 %2!").arg(_deviceName, _location);
-			this->setInError( errortext );
-
-			// List available device
-			for (auto &port : QSerialPortInfo::availablePorts() ) {
-				Debug(_log, "Avail. serial device: [%s]-(%s|%s), Manufacturer: %s, Description: %s",
-					  QSTRING_CSTR(port.portName()),
-					  QSTRING_CSTR(QString("0x%1").arg(port.vendorIdentifier(), 0, 16)),
-					  QSTRING_CSTR(QString("0x%1").arg(port.productIdentifier(), 0, 16)),
-					  QSTRING_CSTR(port.manufacturer()),
-					  QSTRING_CSTR(port.description())
-					  );
-			}
-
-			return false;
+		catch (std::invalid_argument) {
+			Error(_log, "_rs232Port.open() failed: Invalid parameter!");
 		}
 	}
 
@@ -224,7 +191,7 @@ bool ProviderRs232::tryOpen(int delayAfterConnect_ms)
 
 void ProviderRs232::setInError(const QString& errorMsg)
 {
-	_rs232Port.clearError();
+	// _rs232Port.clearError();
 	this->close();
 
 	LedDevice::setInError( errorMsg );
@@ -242,54 +209,36 @@ int ProviderRs232::writeBytes(const qint64 size, const uint8_t *data)
 			return -1;
 		}
 	}
-	qint64 bytesWritten = _rs232Port.write(reinterpret_cast<const char*>(data), size);
+	size_t bytesWritten = _rs232Port.write(data, (size_t)size);
 	if (bytesWritten == -1 || bytesWritten != size)
 	{
-		this->setInError( QString ("Rs232 SerialPortError: %1").arg(_rs232Port.errorString()) );
+		this->setInError( QString ("Rs232 SerialPortError: %1").arg("No error") );
 		rc = -1;
 	}
+	/*
 	else
 	{
-		if (!_rs232Port.waitForBytesWritten(WRITE_TIMEOUT.count()))
+		_rs232Port.waitByteTimes(WRITE_TIMEOUT.count());
+		if (!_rs232Port.waitReadable())
 		{
-			if ( _rs232Port.error() == QSerialPort::TimeoutError )
-			{
-				Debug(_log, "Timeout after %dms: %d frames already dropped", WRITE_TIMEOUT.count(), _frameDropCounter);
-
-				++_frameDropCounter;
-
-				// Check,if number of timeouts in a given time frame is greater than defined
-				// TODO: ProviderRs232::writeBytes - Add time frame to check for timeouts that devices does not close after absolute number of timeouts
-				if ( _frameDropCounter > MAX_WRITE_TIMEOUTS )
-				{
-					this->setInError( QString ("Timeout writing data to %1").arg(_deviceName) );
-					rc = -1;
-				}
-				else
-				{
-					//give it another try
-					_rs232Port.clearError();
-				}
-			}
-			else
-			{
-				this->setInError( QString ("Rs232 SerialPortError: %1").arg(_rs232Port.errorString()) );
+				this->setInError( QString ("Rs232 SerialPortError: %1").arg("No errro") );
 				rc = -1;
-			}
 		}
 	}
+	*/
 	return rc;
 }
 
 QString ProviderRs232::discoverFirst()
 {
 	// take first available USB serial port - currently no probing!
-	for (auto & port : QSerialPortInfo::availablePorts())
+	for (auto & portInfo : serial::list_ports())
 	{
-		if (!port.isNull())
+		if (!portInfo.port.empty())
 		{
-			Info(_log, "found serial device: %s", QSTRING_CSTR(port.portName()));
-			return port.portName();
+			auto portName = QString::fromStdString(portInfo.port);
+			Info(_log, "found serial device: %s", portName);
+			return QString::fromStdString(portInfo.port);
 		}
 	}
 	return "";
@@ -303,20 +252,15 @@ QJsonObject ProviderRs232::discover(const QJsonObject& /*params*/)
 	QJsonArray deviceList;
 
 	// Discover serial Devices
-	for (auto &port : QSerialPortInfo::availablePorts() )
+	for (auto &portInfo : serial::list_ports() )
 	{
-		if ( !port.isNull() && port.vendorIdentifier() != 0)
+		if ( !portInfo.port.empty() && !portInfo.hardware_id.empty() )
 		{
-			QJsonObject portInfo;
-			portInfo.insert("description", port.description());
-			portInfo.insert("manufacturer", port.manufacturer());
-			portInfo.insert("portName", port.portName());
-			portInfo.insert("productIdentifier", QString("0x%1").arg(port.productIdentifier(), 0, 16));
-			portInfo.insert("serialNumber", port.serialNumber());
-			portInfo.insert("systemLocation", port.systemLocation());
-			portInfo.insert("vendorIdentifier", QString("0x%1").arg(port.vendorIdentifier(), 0, 16));
-
-			deviceList.append(portInfo);
+			QJsonObject portInfoJson;
+			portInfoJson.insert("description", QString::fromStdString(portInfo.description));
+			portInfoJson.insert("manufacturer", QString::fromStdString(portInfo.hardware_id));
+			portInfoJson.insert("portName", QString::fromStdString(portInfo.port));
+			deviceList.append(portInfoJson);
 		}
 	}
 
@@ -333,20 +277,15 @@ QJsonObject ProviderRs232::discover(const QJsonObject& /*params*/)
 	{
 		if ((*deviceFileIterator).isSymLink())
 		{
-			QSerialPortInfo port = QSerialPortInfo(QSerialPort((*deviceFileIterator).symLinkTarget()));
+			auto port = serial::Serial((*deviceFileIterator).symLinkTarget().toStdString());
+			QJsonObject portInfoJson;
+			portInfoJson.insert("portName", (*deviceFileIterator).fileName());
+			portInfoJson.insert("systemLocation", (*deviceFileIterator).absoluteFilePath());
+			portInfoJson.insert("udev", true);
 
-			QJsonObject portInfo;
-			portInfo.insert("portName", (*deviceFileIterator).fileName());
-			portInfo.insert("systemLocation", (*deviceFileIterator).absoluteFilePath());
-			portInfo.insert("udev", true);
+			portInfoJson.insert("portName", QString::fromStdString(port.getPort()));
 
-			portInfo.insert("description", port.description());
-			portInfo.insert("manufacturer", port.manufacturer());
-			portInfo.insert("productIdentifier", QString("0x%1").arg(port.productIdentifier(), 0, 16));
-			portInfo.insert("serialNumber", port.serialNumber());
-			portInfo.insert("vendorIdentifier", QString("0x%1").arg(port.vendorIdentifier(), 0, 16));
-
-			deviceList.append(portInfo);
+			deviceList.append(portInfoJson);
 		}
 	}
 #endif

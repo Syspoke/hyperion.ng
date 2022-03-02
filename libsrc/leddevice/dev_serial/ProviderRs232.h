@@ -5,7 +5,8 @@
 #include <leddevice/LedDevice.h>
 
 // qt includes
-#include <QSerialPort>
+//#include <QSerialPort>
+#include <serial/serial.h>
 
 ///
 /// The ProviderRs232 implements an abstract base-class for LedDevices using a RS232-device.
@@ -100,7 +101,9 @@ protected:
 	/// The system location of the output device
 	QString _location;
 	/// The RS232 serial-device
-	QSerialPort _rs232Port;
+	// QSerialPort _rs232Port;
+    serial::Serial _rs232Port;
+
 	/// The used baud-rate of the output device
 	qint32 _baudRate_Hz;
 

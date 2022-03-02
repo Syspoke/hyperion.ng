@@ -14,6 +14,21 @@ if(ENABLE_DEV_WS281XPWM)
 		external/rpi_ws281x/rpihw.c)
 endif()
 
+if(ENABLE_LIBSERIAL)
+	add_library(serial
+		external/serial/src/impl/list_ports/list_ports_linux.cc
+		external/serial/src/impl/list_ports/list_ports_osx.cc
+		external/serial/src/impl/list_ports/list_ports_win.cc
+		external/serial/src/impl/unix.cc
+		external/serial/src/impl/win.cc
+		external/serial/src/serial.cc
+	)
+
+	# define the include for the serial library at the parent scope
+	set(SERIAL_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/external/serial/include")
+	include_directories(${SERIAL_INCLUDE_DIRS})
+endif()
+
 #=============================================================================
 # FLATBUFFER
 #=============================================================================
