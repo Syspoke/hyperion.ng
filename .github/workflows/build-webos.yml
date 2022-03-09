@@ -7,6 +7,7 @@ on:
 env:
   TOOLCHAIN_URL: https://api.cirrus-ci.com/v1/artifact/task/6395549015343104/sdk/output/images/arm-webos-linux-gnueabi_sdk-buildroot.tar.gz
   TOOLCHAIN_DIR: /opt/arm-webos-linux-gnueabi_sdk-buildroot
+  TOOLCHAIN_FILE: /opt/arm-webos-linux-gnueabi_sdk-buildroot/share/buildroot/toolchainfile.cmake
   BUILD_DIR_NATIVE: build-x86x64
   BUILD_DIR_CROSS: build-cross
   RELEASE_DIR: release
@@ -65,12 +66,10 @@ jobs:
           popd
 
       - name: Build cross (webos arm)
-        env:
-          CMAKE_TOOLCHAIN_FILE: ${TOOLCHAIN_DIR}/share/buildroot/toolchainfile.cmake
         run: |
           pushd ${BUILD_DIR_CROSS}
           cmake .. \
-            -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} \
+            -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE} \
             -DCMAKE_BUILD_TYPE=Release \
             -DPLATFORM=rpi \
             -DHYPERION_LIGHT=ON \
