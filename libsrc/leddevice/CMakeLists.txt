@@ -137,7 +137,7 @@ if (ENABLE_DEV_USB_HID)
 	if(APPLE)
 		target_link_libraries(leddevice ${LIBUSB_1_LIBRARIES} hidapi-mac)
 	else()
-		target_link_libraries(leddevice ${LIBUSB_1_LIBRARIES} hidapi-libusb)
+		target_link_libraries(leddevice ${LIBUSB_1_LIBRARIES} rt hidapi-libusb)
 	endif()
 endif()
 
