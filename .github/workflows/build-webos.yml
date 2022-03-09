@@ -21,10 +21,18 @@ jobs:
         with:
           submodules: true
 
+      - name: Cache build dirs
+        id: cache-build
+        uses: actions/cache@v2
+        with:
+          path: |
+            ./build-x86x64
+            ./build-cross
+        key: ${{ runner.os }}-webos-build-cache
       - name: Create build directories
         run: |
-          mkdir ${BUILD_DIR_NATIVE}
-          mkdir ${BUILD_DIR_CROSS}
+          mkdir -p ${BUILD_DIR_NATIVE}
+          mkdir -p ${BUILD_DIR_CROSS}
 
       - name: Download and unpack toolchain
         working-directory: /opt
