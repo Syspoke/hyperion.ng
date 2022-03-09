@@ -305,7 +305,7 @@ QJsonObject ProviderRs232::discover(const QJsonObject& /*params*/)
 	// Discover serial Devices
 	for (auto &port : QSerialPortInfo::availablePorts() )
 	{
-		if ( !port.isNull() && port.vendorIdentifier() != 0)
+		if ( !port.isNull())
 		{
 			QJsonObject portInfo;
 			portInfo.insert("description", port.description());
