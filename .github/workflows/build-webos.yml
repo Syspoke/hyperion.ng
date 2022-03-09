@@ -28,7 +28,7 @@ jobs:
           path: |
             ./build-x86x64
             ./build-cross
-        key: ${{ runner.os }}-webos-build-cache
+          key: ${{ runner.os }}-webos-build-cache
       - name: Create build directories
         run: |
           mkdir -p ${BUILD_DIR_NATIVE}
