@@ -32,12 +32,14 @@ jobs:
           tar xf toolchain.tar.gz
 
       - name: Relocate toolchain
-        working-directory: ${TOOLCHAIN_DIR}
-        run: ./relocate-sdk.sh
+        run: |
+          pushd ${TOOLCHAIN_DIR}
+          ./relocate-sdk.sh
+          popd
 
       - name: Build native
-        working-directory: ./${BUILD_DIR_NATIVE}
         run: |
+          pushd ./${BUILD_DIR_NATIVE}
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DENABLE_FLATBUF_SERVER=OFF \
@@ -57,14 +59,15 @@ jobs:
             -DENABLE_REMOTE_CTL=OFF \
             -Wno-dev
           make
-          
+          popd
+
       - name: Build cross (webos arm)
-        working-directory: ./${BUILD_DIR_CROSS}
         env:
-          TOOLCHAIN_FILE: ${TOOLCHAIN_DIR}/share/buildroot/toolchainfile.cmake
+          CMAKE_TOOLCHAIN_FILE: ${TOOLCHAIN_DIR}/share/buildroot/toolchainfile.cmake
         run: |
+          pushd ${BUILD_DIR_CROSS}
           cmake .. \
-            -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE} \
+            -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} \
             -DCMAKE_BUILD_TYPE=Release \
             -DPLATFORM=rpi \
             -DHYPERION_LIGHT=ON \
@@ -80,6 +83,7 @@ jobs:
             -DENABLE_FLATBUF_SERVER=ON \
             -DIMPORT_FLATC=${GITHUB_WORKSPACE}/${BUILD_DIR_NATIVE}/flatc_export.cmake
           make
+          popd
 
       - name: Create release directory
         run: |
