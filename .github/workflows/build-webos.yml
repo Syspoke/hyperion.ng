@@ -29,7 +29,7 @@ jobs:
       - name: Download and unpack toolchain
         working-directory: /opt
         run: |
-          wget -o toolchain.tar.gz ${TOOLCHAIN_URL}
+          wget -q -O toolchain.tar.gz ${TOOLCHAIN_URL}
           tar xf toolchain.tar.gz
           pushd ${TOOLCHAIN_DIR}
           ./relocate-sdk.sh
