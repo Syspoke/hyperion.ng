@@ -6,7 +6,7 @@ on:
 
 env:
   APT_DEPS: ccache git cmake build-essential qtbase5-dev libqt5serialport5-dev libqt5sql5-sqlite libqt5svg5-dev libqt5x11extras5-dev python3-dev libxcb-image0-dev libxcb-util0-dev libxcb-shm0-dev libxcb-render0-dev libxcb-randr0-dev libxrandr-dev libxrender-dev libturbojpeg0-dev libssl-dev libmbedtls-dev
-  TOOLCHAIN_URL: https://api.cirrus-ci.com/v1/artifact/task/6395549015343104/sdk/output/images/arm-webos-linux-gnueabi_sdk-buildroot.tar.gz
+  TOOLCHAIN_URL: https://api.cirrus-ci.com/v1/artifact/task/6155872014434304/sdk/output/images/arm-webos-linux-gnueabi_sdk-buildroot.tar.gz
   TOOLCHAIN_DIR: /opt/arm-webos-linux-gnueabi_sdk-buildroot
   TOOLCHAIN_FILE: /opt/arm-webos-linux-gnueabi_sdk-buildroot/share/buildroot/toolchainfile.cmake
   BUILD_DIR_NATIVE: build-x86x64
