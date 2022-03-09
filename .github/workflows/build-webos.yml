@@ -5,11 +5,13 @@ on:
   workflow_dispatch:
 
 env:
+  APT_DEPS: ccache git cmake build-essential qtbase5-dev libqt5serialport5-dev libqt5sql5-sqlite libqt5svg5-dev libqt5x11extras5-dev python3-dev libxcb-image0-dev libxcb-util0-dev libxcb-shm0-dev libxcb-render0-dev libxcb-randr0-dev libxrandr-dev libxrender-dev libturbojpeg0-dev libssl-dev libmbedtls-dev
   TOOLCHAIN_URL: https://api.cirrus-ci.com/v1/artifact/task/6395549015343104/sdk/output/images/arm-webos-linux-gnueabi_sdk-buildroot.tar.gz
   TOOLCHAIN_DIR: /opt/arm-webos-linux-gnueabi_sdk-buildroot
   TOOLCHAIN_FILE: /opt/arm-webos-linux-gnueabi_sdk-buildroot/share/buildroot/toolchainfile.cmake
   BUILD_DIR_NATIVE: build-x86x64
   BUILD_DIR_CROSS: build-cross
+  DEPENDENCY_LIBS: libpng16.so.16 libcrypto.so.1.1 libz.so.1 libssl.so.1.1 libQt5Sql.so.5.15.2 libpcre2-16.so.0 libQt5Gui.so.5 libQt5Network.so.5 libQt5Widgets.so.5 libk5crypto.so.3 libatomic.so.1 libQt5Core.so.5 libkrb5support.so.0 libcom_err.so.3 libstdc++.so.6 libkrb5.so.3 libQt5Sql.so.5 libgssapi_krb5.so.2 libQt5SerialPort.so.5 libQt5Sql.so.5.15
   RELEASE_DIR: release
 
 jobs:
@@ -47,7 +49,7 @@ jobs:
           popd
 
       - name: Install native dependencies
-        run: sudo apt install -y ccache git cmake build-essential qtbase5-dev libqt5serialport5-dev libqt5sql5-sqlite libqt5svg5-dev libqt5x11extras5-dev python3-dev libxcb-image0-dev libxcb-util0-dev libxcb-shm0-dev libxcb-render0-dev libxcb-randr0-dev libxrandr-dev libxrender-dev libturbojpeg0-dev libssl-dev libmbedtls-dev
+        run: sudo apt install -y ${APT_DEPS}
 
       - name: Build native
         run: |
@@ -99,6 +101,13 @@ jobs:
         run: |
           mkdir ./${RELEASE_DIR}
           cp -r ./${BUILD_DIR_CROSS}/bin/* ./${RELEASE_DIR}/
+          find ./${RELEASE_DIR}
+
+      - name: Copy dependencies into release directory
+        run: |
+          for i in ${DEPENDENCY_LIBS}; do find ${TOOLCHAIN_DIR}/arm-webos-linux-gnueabi/sysroot/ -name $i -exec cp {} ./${RELEASE_DIR}/ \;; done
+          mkdir -p ./${RELEASE_DIR}/sqldrivers
+          cp ${TOOLCHAIN_DIR}/arm-webos-linux-gnueabi/sysroot/usr/lib/qt/plugins/sqldrivers/libqsqlite.so ./${RELEASE_DIR}/sqldrivers/
           find ./${RELEASE_DIR}
 
       - name: Upload artifacts
