@@ -7,7 +7,6 @@ on:
 env:
   TOOLCHAIN_URL: https://api.cirrus-ci.com/v1/artifact/task/6395549015343104/sdk/output/images/arm-webos-linux-gnueabi_sdk-buildroot.tar.gz
   TOOLCHAIN_DIR: /opt/arm-webos-linux-gnueabi_sdk-buildroot
-  TOOLCHAIN_FILE: ${TOOLCHAIN_DIR}/share/buildroot/toolchainfile.cmake
   BUILD_DIR_NATIVE: build-x86x64
   BUILD_DIR_CROSS: build-cross
   RELEASE_DIR: release
@@ -31,11 +30,10 @@ jobs:
         run: |
           wget -q -O toolchain.tar.gz ${TOOLCHAIN_URL}
           tar xf toolchain.tar.gz
-          pushd ${TOOLCHAIN_DIR}
-          ./relocate-sdk.sh
-          popd
-          ls -alh .
-          ls -l ${TOOLCHAIN_FILE}
+
+      - name: Relocate toolchain
+        working-directory: ${TOOLCHAIN_DIR}
+        run: ./relocate-sdk.sh
 
       - name: Build native
         working-directory: ./${BUILD_DIR_NATIVE}
@@ -62,6 +60,8 @@ jobs:
           
       - name: Build cross (webos arm)
         working-directory: ./${BUILD_DIR_CROSS}
+        env:
+          TOOLCHAIN_FILE: ${TOOLCHAIN_DIR}/share/buildroot/toolchainfile.cmake
         run: |
           cmake .. \
             -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE} \
