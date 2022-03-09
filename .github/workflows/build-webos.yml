@@ -91,8 +91,9 @@ jobs:
         run: |
           mkdir ./${RELEASE_DIR}
           cp -r ./${BUILD_DIR_CROSS}/bin/* ./${RELEASE_DIR}/
+          find ./${RELEASE_DIR}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          path: ${RELEASE_DIR}/*
+          path: ./release/*
