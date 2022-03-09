@@ -79,7 +79,7 @@ jobs:
             -DENABLE_DEV_SERIAL=ON \
             -DENABLE_DEV_USB_HID=OFF \
             -DENABLE_DEV_WS281XPWM=OFF \
-            -DENABLE_DEV_TINKERFORGE=ON \
+            -DENABLE_DEV_TINKERFORGE=OFF \
             -DENABLE_AVAHI=OFF \
             -DENABLE_DEPLOY_DEPENDENCIES=OFF \
             -DENABLE_FLATBUF_SERVER=ON \
