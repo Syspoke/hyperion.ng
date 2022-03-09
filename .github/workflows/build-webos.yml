@@ -1,0 +1,92 @@
+name: WebOS build
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  TOOLCHAIN_URL: https://api.cirrus-ci.com/v1/artifact/task/6395549015343104/sdk/output/images/arm-webos-linux-gnueabi_sdk-buildroot.tar.gz
+  TOOLCHAIN_DIR: /opt/arm-webos-linux-gnueabi_sdk-buildroot
+  TOOLCHAIN_FILE: ${TOOLCHAIN_DIR}/share/buildroot/toolchainfile.cmake
+  BUILD_DIR_NATIVE: build-x86x64
+  BUILD_DIR_CROSS: build-cross
+  RELEASE_DIR: release
+
+jobs:
+  build_webos:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+        with:
+          submodules: true
+
+      - name: Create build directories
+        run: |
+          mkdir ${BUILD_DIR_NATIVE}
+          mkdir ${BUILD_DIR_CROSS}
+
+      - name: Download and unpack toolchain
+        working-directory: /opt
+        run: |
+          wget -o toolchain.tar.gz ${TOOLCHAIN_URL}
+          tar xf toolchain.tar.gz
+          pushd ${TOOLCHAIN_DIR}
+          ./relocate-sdk.sh
+          popd
+          ls -alh .
+          ls -l ${TOOLCHAIN_FILE}
+
+      - name: Build native
+        working-directory: ./${BUILD_DIR_NATIVE}
+        run: |
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DENABLE_FLATBUF_SERVER=OFF \
+            -DENABLE_DISPMANX=OFF \
+            -DENABLE_FB=OFF \
+            -DENABLE_V4L2=OFF \
+            -DENABLE_X11=OFF \
+            -DENABLE_XCB=OFF \
+            -DENABLE_BOBLIGHT_SERVER=OFF \
+            -DENABLE_CEC=OFF \
+            -DENABLE_DEV_NETWORK=OFF \
+            -DENABLE_DEV_SERIAL=OFF \
+            -DENABLE_DEV_TINKERFORGE=OFF \
+            -DENABLE_DEV_USB_HID=OFF \
+            -DENABLE_AVAHI=OFF \
+            -DENABLE_EFFECTENGINE=OFF \
+            -DENABLE_REMOTE_CTL=OFF \
+            -Wno-dev
+          make
+          
+      - name: Build cross (webos arm)
+        working-directory: ./${BUILD_DIR_CROSS}
+        run: |
+          cmake .. \
+            -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE} \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DPLATFORM=rpi \
+            -DHYPERION_LIGHT=ON \
+            -DENABLE_QT=OFF \
+            -DENABLE_EFFECTENGINE=OFF \
+            -DENABLE_JSONCHECKS=OFF \
+            -DENABLE_DEV_SERIAL=ON \
+            -DENABLE_DEV_USB_HID=ON \
+            -DENABLE_DEV_WS281XPWM=OFF \
+            -DENABLE_DEV_TINKERFORGE=ON \
+            -DENABLE_AVAHI=OFF \
+            -DENABLE_DEPLOY_DEPENDENCIES=OFF \
+            -DENABLE_FLATBUF_SERVER=ON \
+            -DIMPORT_FLATC=${GITHUB_WORKSPACE}/${BUILD_DIR_NATIVE}/flatc_export.cmake
+          make
+
+      - name: Create release directory
+        run: |
+          mkdir ./${RELEASE_DIR}
+          cp -r ./${BUILD_DIR_CROSS}/bin/* ./${RELEASE_DIR}/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${RELEASE_DIR}/*
